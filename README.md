@@ -5,15 +5,15 @@ Using multiple Kinects via Kinect2Kit, we can track people's positions and their
 
 ## How to run?
 
+For more information on steps 1 and 2, see [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit).
+
 1. Run the Kinect2Kit server
 
     - `(venv) $ python run.py --host=[host] --port=[port]`
 
-2. Run the Kinect clients
+2. Run the Kinect2Kit clients
     
     - `$ .\KinectClient.exe`
-
-See [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit) for detailed instructions of steps 1 and 2.
 
 3. Run the Gesture Tracker application
 
