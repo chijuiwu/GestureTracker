@@ -1,0 +1,14 @@
+﻿<Window x:Class="GestureTracker.SetupSessionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kinect2Kit Session" Height="150" Width="320" MinWidth="320" MinHeight="150" MaxWidth="320" MaxHeight="150">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Button Grid.Row="0" Content="OK" IsDefault="True" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="74" FontSize="16" Margin="10,0,213,10" Click="OK_Click"/>
+        <Button Grid.Row="0" Content="Cancel" IsCancel="True" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="74" FontSize="16" Margin="89,0,134,10"/>
+        <Label Grid.Row="0" Content="Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <TextBox Grid.Row="0" x:Name="entryName" HorizontalAlignment="Left" Height="23" Margin="52,13,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="172" />
+        </Grid>
+</Window>

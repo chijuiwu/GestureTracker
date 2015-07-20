@@ -9,34 +9,57 @@
         <SolidColorBrush x:Key="KinectBlueBrush" Color="#ff00BCF2" />
     </Window.Resources>
 
-    <Grid Margin="10 0 10 0">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Menu IsMainMenu="True" Grid.Row="0" Height="Auto" VerticalAlignment="Top">
-            <MenuItem Header="_File"/>
+        <StackPanel Grid.Row="0">
+            <Menu IsMainMenu="True" Height="Auto" VerticalAlignment="Top" FontSize="12">
 
-            <MenuItem Header="_Setup">
-                <MenuItem Header="_Kinect2Kit Server" Click="Setup_Kinect2Kit_Server_Click"/>
-                <MenuItem Header="_Kinects" Click="Setup_Kinects_Click"/>
-                <MenuItem Header="_Session" Click="Setup_Session_Click"/>
-            </MenuItem>
+                <MenuItem x:Name="Menu_File" Header="_FILE">
+                    <MenuItem Header="_Open" Click="File_Open_Click"/>
+                </MenuItem>
+
+                <MenuItem x:Name="Menu_Track" Header="_TRACK" IsEnabled="False">
+                    <MenuItem x:Name="MenuItem_Track_Start" Header="_Start" Click="Start_Track_Click" IsEnabled="False" Visibility="Collapsed"/>
+                    <MenuItem x:Name="MenuItem_Track_Pause" Header="_Pause" Click="Pause_Track_Click" IsEnabled="False" Visibility="Collapsed"/>
+                    <MenuItem x:Name="MenuItem_Track_Resume" Header="_Pause" Click="Resume_Track_Click" IsEnabled="False" Visibility="Collapsed"/>
+                    <MenuItem x:Name="MenuItem_Track_Stop" Header="_Stop" Click="Stop_Track_Click" IsEnabled="False" Visibility="Collapsed"/>
+                </MenuItem>
+
+                <MenuItem x:Name="Menu_View" Header="_VIEW" IsEnabled="False"/>
+            </Menu>
             
-            <MenuItem Header="_Calibration">
-                <MenuItem Header="_Acquire" Click="Calibration_Acquire_Click"/>
-                <MenuItem Header="_Resolve" Click="Calibration_Resolve_Click"/>
-            </MenuItem>
+            <ToolBarTray Background="#FFF0F0F0">
+                <ToolBar x:Name="ToolBar_Main" Background="#FFF0F0F0" Loaded="ToolBar_Loaded">
+                    <Button x:Name="Button_Open" ToolBar.OverflowMode="Never" ToolTip="Open Kinect2Kit Configuration File" Click="File_Open_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/GestureTracker;component/Icons/folder_Open_16xMD.png"/>
+                            <Label Padding="0">Open</Label>
+                        </StackPanel>
+                    </Button>
+                    <Separator />
 
-            <MenuItem Header="_Start">
-                <MenuItem Header="_Tracking" Click="Start_Tracking_Click"/>
-            </MenuItem>
-            
-            <MenuItem Header="_View"/>
-        </Menu>
+                    <Button x:Name="Button_Track_Start" ToolBar.OverflowMode="Never" ToolTip="Start" IsEnabled="False" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/GestureTracker;component/Icons/arrow_run_16xMD.png"/>
+                            <Label Padding="0">Start</Label>
+                        </StackPanel>
+                    </Button>
 
+                    <Button x:Name="Button_Track_Stop" ToolBar.OverflowMode="Never" ToolTip="Stop" IsEnabled="False" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Stop_16xMD.png"/>
+                            <Label Padding="0">Stop</Label>
+                        </StackPanel>
+                    </Button>
+                </ToolBar>
+            </ToolBarTray>
+        </StackPanel>
+        
         <Viewbox Grid.Row="1" HorizontalAlignment="Center">
             <Image Source="{Binding KinectImageSource}" Stretch="UniformToFill" />
         </Viewbox>

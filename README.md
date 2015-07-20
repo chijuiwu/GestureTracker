@@ -1,11 +1,9 @@
 # GestureTracker
-Gesture recognition and tracking, based on [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit).
-
-Using multiple Kinects via Kinect2Kit, we can track people's positions and their gestures reliably, even through occlusion.
+A gesture recognition and tracking application, based on [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit). It uses multiple Kinects to track people's positions and their gestures, which has the benefits of a larger field of view and resolves the occlusion problem.
 
 ## How to run?
 
-For more information on steps 1 and 2, see [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit).
+You will need [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit) to complete steps 1 and 2.
 
 1. Run the Kinect2Kit server
 
@@ -13,7 +11,7 @@ For more information on steps 1 and 2, see [Kinect2Kit](https://github.com/cjw-c
 
 2. Run the Kinect2Kit clients
     
-    - `$ .\KinectClient.exe`
+    - `$ .toolkit\client\csharp\Kinect2KitClient\bin\AnyCPU\Release\BodyBasics-WPF.exe`
 
 3. Run the Gesture Tracker application
 

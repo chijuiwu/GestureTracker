@@ -1,0 +1,16 @@
+<Kinect2KitSetup>
+    <Server>
+        <Address>localhost</Address>
+        <Port>8000</Port>
+    </Server>
+    <Clients>
+        <Client>
+            <Name>Client1</Name>
+            <Address>address1</Address>
+        </Client>
+        <Client>
+            <Name>Client2</Name>
+            <Address>address2</Address>
+        </Client>
+    </Clients>
+</Kinect2KitSetup>
