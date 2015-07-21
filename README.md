@@ -1,6 +1,8 @@
 # GestureTracker
 A gesture recognition and tracking application, based on [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit). It uses multiple Kinects to track people's positions and their gestures, which has the benefits of a larger field of view and resolves the occlusion problem.
 
+![GestureTracker](https://raw.github.com/cjw-charleswu/GestureTracker/master/Images/update.png)
+
 ## How to run?
 
 You will need [Kinect2Kit](https://github.com/cjw-charleswu/Kinect2Kit) to complete steps 1 and 2.

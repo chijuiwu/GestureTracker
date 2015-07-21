@@ -35,7 +35,7 @@ namespace GestureTracker
         private string statusText;
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private Dictionary<string, string> kinectClientsDict = new Dictionary<string, string>();
+        private Task trackingTask;
 
         public MainWindow()
         {
@@ -92,6 +92,7 @@ namespace GestureTracker
             }
         }
 
+        #region FILE
         private void File_Open_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -99,44 +100,93 @@ namespace GestureTracker
             {
                 string setupFile = openFileDialog.FileName;
                 Kinect2KitAPI.LoadSetup(setupFile);
+
                 // menu
                 this.Menu_Track.IsEnabled = true;
-                this.MenuItem_Track_Start.IsEnabled = true;
                 this.MenuItem_Track_Start.Visibility = Visibility.Visible;
                 // toolbar
-                this.Button_Track_Start.IsEnabled = true;
                 this.Button_Track_Start.Visibility = Visibility.Visible;
 
-                this.StatusText = String.Format("Kinect2Kit setup loaded from: {0}", setupFile);
+                this.StatusText = String.Format("Kinect2Kit setup loaded from {0}.", setupFile);
             }
             else
             {
-                this.StatusText = "Kinect2Kit setup not loaded";
+                this.StatusText = "Kinect2Kit setup not loaded.";
             }
         }
 
-        private void Start_Track_Click(object sender, RoutedEventArgs e)
+        private void File_Exit_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+        #endregion
+
+        #region TRACK
+        private async void Track_Start_Click(object sender, RoutedEventArgs e)
         {
             SetupSessionDialog setupSession = new SetupSessionDialog();
             if (setupSession.ShowDialog() == true)
             {
                 string sessionName = setupSession.entryName.Text;
-                Kinect2KitAPI.Response resp = Kinect2KitAPI.StartSession(sessionName);
+
+                this.StatusText = String.Format("Starting Kinect2Kit session {0} @ {1}.", sessionName, Kinect2KitAPI.ServerEndpoint);
+
+                Kinect2KitSimpleResponse resp = await Kinect2KitAPI.StartSessionAsync(sessionName);
                 if (resp.IsSuccessful)
                 {
-                    //this.MenuItem_Start_Calibration.IsEnabled = true;
-                    this.StatusText = String.Format("Starting Kinect2Kit session {0} @ {1}", sessionName, Kinect2KitAPI.ServerEndpoint);
+                    // menu
+                    this.MenuItem_Track_Start.Visibility = Visibility.Collapsed;
+                    this.MenuItem_Track_Pause.Visibility = Visibility.Visible;
+                    this.MenuItem_Track_Stop.Visibility = Visibility.Visible;
+                    // toolbar
+                    this.Button_Track_Start.Visibility = Visibility.Collapsed;
+                    this.Button_Track_Pause.Visibility = Visibility.Visible;
+                    this.Button_Track_Stop.Visibility = Visibility.Visible;
+
+                    this.StatusText = String.Format("Kinect2Kit session {0} started @ {1}.", sessionName, Kinect2KitAPI.ServerEndpoint);
+
+                    // begin tracking task
+                    this.trackingTask = Task.Run(() => this.Track());
                 }
                 else
                 {
-                    this.StatusText = String.Format("Kinect2Kit session not started. Message: ", resp.ServerMessage);
+                    this.StatusText = String.Format("Kinect2Kit session {0} not started. Message: {1}", sessionName, resp.ServerMessage);
                 }
             }
             else
             {
-                this.StatusText = "Kinect2Kit session not started";
+                this.StatusText = "Kinect2Kit session not started.";
             }
         }
+
+        private async void Track()
+        {
+            // calibration
+            Kinect2KitSimpleResponse resp = await Kinect2KitAPI.StartCalibrationAsync();
+            if (resp.IsSuccessful)
+            {
+                this.StatusText = String.Format("Kinect2Kit starting calibration @ {0}", Kinect2KitAPI.ServerEndpoint);
+                while (true)
+                {
+                    Kinect2KitCalibrationResponse calibrationResp = await Kinect2KitAPI.GetCalibrationStatus();
+                    if (calibrationResp.Finished)
+                    {
+                        break;
+                    }
+                    else if (calibrationResp.AcquiringFrames)
+                    {
+                        this.StatusText = String.Format("Kinect2Kit server acquring frames @ {0}. Required: {1}, Remained: {2}.", Kinect2KitAPI.ServerEndpoint, calibrationResp.RequiredFrames, calibrationResp.RemainedFrames);
+                    }
+                    else if (calibrationResp.ResolvingFrames)
+                    {
+                        this.StatusText = String.Format("Kinect2Kit server resolving frames @ {0}.", Kinect2KitAPI.ServerEndpoint);
+                    }
+                }
+            }
+        }
+
+
+        #endregion
 
         private void Pause_Track_Click(object sender, RoutedEventArgs e)
         {
@@ -160,12 +210,6 @@ namespace GestureTracker
         {
             //dynamic response = Kinect2KitAPI.GetResponse(Kinect2KitAPI.API_ResolveCalibration);
             //this.StatusText = "Start resolving calibration..." + response.message;
-        }
-
-        private void Start_Track_Click(object sender, RoutedEventArgs e)
-        {
-            //dynamic response = Kinect2KitAPI.GetResponse(Kinect2KitAPI.API_StartTracking);
-            //this.StatusText = "Start Tracking..." + response.message;
         }
 
         private void Stop_Track_Click(object sender, RoutedEventArgs e)

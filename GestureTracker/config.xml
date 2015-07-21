@@ -7,10 +7,14 @@
         <Client>
             <Name>Client1</Name>
             <Address>address1</Address>
+            <TiltAngle>0.00</TiltAngle>
+            <Height>1.00</Height>
         </Client>
         <Client>
             <Name>Client2</Name>
             <Address>address2</Address>
+            <TiltAngle>0</TiltAngle>
+            <Height>1.00</Height>
         </Client>
     </Clients>
 </Kinect2KitSetup>

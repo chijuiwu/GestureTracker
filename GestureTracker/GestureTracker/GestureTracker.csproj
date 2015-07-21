@@ -34,8 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Kinect2KitAPI">
-      <HintPath>..\..\..\Kinect2Kit\toolkit\client\csharp\Kinect2KitAPI\Kinect2KitAPI\bin\Release\Kinect2KitAPI.dll</HintPath>
+    <Reference Include="Kinect2KitAPI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Kinect2Kit\toolkit\client\csharp\Kinect2KitAPI\Kinect2KitAPI\bin\Debug\Kinect2KitAPI.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL" />
@@ -115,6 +116,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Icons\StatusAnnotations_Stop_16xMD.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\StatusAnnotations_Pause_16xMD.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
