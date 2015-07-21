@@ -36,7 +36,7 @@
   <ItemGroup>
     <Reference Include="Kinect2KitAPI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Kinect2Kit\toolkit\client\csharp\Kinect2KitAPI\Kinect2KitAPI\bin\Debug\Kinect2KitAPI.dll</HintPath>
+      <HintPath>..\..\..\Kinect2Kit\toolkit\client\csharp\Kinect2KitAPI\Kinect2KitAPI\bin\Release\Kinect2KitAPI.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL" />

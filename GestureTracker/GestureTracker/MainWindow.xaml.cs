@@ -125,31 +125,39 @@ namespace GestureTracker
         private async void Track_Start_Click(object sender, RoutedEventArgs e)
         {
             SetupSessionDialog setupSession = new SetupSessionDialog();
+            setupSession.Owner = Application.Current.MainWindow;
+            setupSession.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             if (setupSession.ShowDialog() == true)
             {
+                // disable start button while waiting from the sever
+                this.MenuItem_Track_Start.Visibility = Visibility.Collapsed;
+                this.Button_Track_Start.Visibility = Visibility.Collapsed;
+
                 string sessionName = setupSession.entryName.Text;
 
-                this.StatusText = String.Format("Starting Kinect2Kit session {0} @ {1}.", sessionName, Kinect2KitAPI.ServerEndpoint);
+                this.StatusText = String.Format("Kinect2Kit server @ {1} was starting session {1}.", Kinect2KitAPI.ServerEndpoint , sessionName);
 
                 Kinect2KitSimpleResponse resp = await Kinect2KitAPI.StartSessionAsync(sessionName);
                 if (resp.IsSuccessful)
                 {
                     // menu
-                    this.MenuItem_Track_Start.Visibility = Visibility.Collapsed;
                     this.MenuItem_Track_Pause.Visibility = Visibility.Visible;
                     this.MenuItem_Track_Stop.Visibility = Visibility.Visible;
                     // toolbar
-                    this.Button_Track_Start.Visibility = Visibility.Collapsed;
                     this.Button_Track_Pause.Visibility = Visibility.Visible;
                     this.Button_Track_Stop.Visibility = Visibility.Visible;
 
-                    this.StatusText = String.Format("Kinect2Kit session {0} started @ {1}.", sessionName, Kinect2KitAPI.ServerEndpoint);
+                    this.StatusText = String.Format("Kinect2Kit server @ {0} started session {1}.", Kinect2KitAPI.ServerEndpoint, sessionName);
 
                     // begin tracking task
                     this.trackingTask = Task.Run(() => this.Track());
                 }
                 else
                 {
+                    // re-enable start
+                    this.MenuItem_Track_Start.Visibility = Visibility.Visible;
+                    this.Button_Track_Start.Visibility = Visibility.Visible;
+
                     this.StatusText = String.Format("Kinect2Kit session {0} not started. Message: {1}", sessionName, resp.ServerMessage);
                 }
             }
@@ -165,22 +173,24 @@ namespace GestureTracker
             Kinect2KitSimpleResponse resp = await Kinect2KitAPI.StartCalibrationAsync();
             if (resp.IsSuccessful)
             {
-                this.StatusText = String.Format("Kinect2Kit starting calibration @ {0}", Kinect2KitAPI.ServerEndpoint);
+                this.StatusText = String.Format("Kinect2Kit server @ {0} started calibration", Kinect2KitAPI.ServerEndpoint);
                 while (true)
                 {
                     Kinect2KitCalibrationResponse calibrationResp = await Kinect2KitAPI.GetCalibrationStatus();
                     if (calibrationResp.Finished)
                     {
+                        this.StatusText = String.Format("Kinect2Kit server @ {0} finished calibration", Kinect2KitAPI.ServerEndpoint);
                         break;
                     }
                     else if (calibrationResp.AcquiringFrames)
                     {
-                        this.StatusText = String.Format("Kinect2Kit server acquring frames @ {0}. Required: {1}, Remained: {2}.", Kinect2KitAPI.ServerEndpoint, calibrationResp.RequiredFrames, calibrationResp.RemainedFrames);
+                        this.StatusText = String.Format("Kinect2Kit server @ {0} was acquring frames. Required: {1}, Remained: {2}.", Kinect2KitAPI.ServerEndpoint, calibrationResp.RequiredFrames, calibrationResp.RemainedFrames);
                     }
                     else if (calibrationResp.ResolvingFrames)
                     {
-                        this.StatusText = String.Format("Kinect2Kit server resolving frames @ {0}.", Kinect2KitAPI.ServerEndpoint);
+                        this.StatusText = String.Format("Kinect2Kit server @ {0} was resolving frames.", Kinect2KitAPI.ServerEndpoint);
                     }
+                    await Task.Delay(30); // slow down
                 }
             }
         }
