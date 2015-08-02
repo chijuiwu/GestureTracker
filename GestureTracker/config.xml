@@ -1,14 +1,14 @@
 <Kinect2KitSetup>
     <Server>
-        <Address>localhost</Address>
+        <IPAddress>localhost</IPAddress>
         <Port>8000</Port>
     </Server>
-    <Clients>
-        <Client>
+    <Kinects>
+        <Kinect>
             <Name>TestClient</Name>
-            <Address>127.0.0.1</Address>
+            <IPAddress>127.0.0.1</IPAddress>
             <TiltAngle>0.00</TiltAngle>
             <Height>1.00</Height>
-        </Client>
-    </Clients>
+        </Kinect>
+    </Kinects>
 </Kinect2KitSetup>

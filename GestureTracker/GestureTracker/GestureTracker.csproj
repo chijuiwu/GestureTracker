@@ -120,6 +120,9 @@
   <ItemGroup>
     <Resource Include="Icons\StatusAnnotations_Pause_16xMD.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\refresh_16xMD.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

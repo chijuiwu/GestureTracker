@@ -1,7 +1,8 @@
 ﻿<Window x:Class="GestureTracker.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Gesture Tracker" Height="600" Width="800">
+        Title="Gesture Tracker" Height="600" Width="800"
+        Closing="MainWindow_Closing">
 
     <Window.Resources>
         <SolidColorBrush x:Key="MediumGreyBrush" Color="#ff6e6e6e" />
@@ -20,25 +21,29 @@
             <Menu IsMainMenu="True" Height="Auto" VerticalAlignment="Top" FontSize="12">
 
                 <MenuItem x:Name="Menu_File" Header="_FILE">
-                    <MenuItem Header="_Open" Click="File_Open_Click"/>
+                    <MenuItem x:Name="MenuItem_File_Open" Header="_Open" Click="File_Open_Click"/>
                     <Separator />
-                    <MenuItem Header="_Exit" Click="File_Exit_Click"/>
+                    <MenuItem x:Name="MenuItem_Exit" Header="_Exit" Click="File_Exit_Click"/>
                 </MenuItem>
 
-                <MenuItem x:Name="Menu_Track" Header="_TRACK" IsEnabled="False">
-                    <MenuItem x:Name="MenuItem_Track_Start" Header="_Start" Click="Track_Start_Click" Visibility="Collapsed"/>
-                    <MenuItem x:Name="MenuItem_Track_Pause" Header="_Pause" Click="Pause_Track_Click" Visibility="Collapsed"/>
-                    <MenuItem x:Name="MenuItem_Track_Resume" Header="_Pause" Click="Resume_Track_Click" Visibility="Collapsed"/>
-                    <MenuItem x:Name="MenuItem_Track_Stop" Header="_Stop" Click="Stop_Track_Click" Visibility="Collapsed"/>
+                <MenuItem x:Name="Menu_Track" Header="_TRACK">
+                    <MenuItem x:Name="MenuItem_Track_Start" Header="_Start" Click="Track_Start_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="MenuItem_Track_Pause" Header="_Pause" Click="Track_Pause_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="MenuItem_Track_Resume" Header="_Resume" Click="Track_Resume_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="MenuItem_Track_Stop" Header="_Stop" Click="Track_Stop_Click" IsEnabled="False"/>
                 </MenuItem>
 
-                <MenuItem x:Name="Menu_View" Header="_VIEW" IsEnabled="False"/>
+                <MenuItem x:Name="Menu_View" Header="_VIEW">
+                    <MenuItem x:Name="MenuItem_View_All" Header="_All" Click="View_All_Click" IsChecked="True" IsEnabled="False"/>
+                    <MenuItem x:Name="MenuItem_View_Average" Header="_Average" Click="View_Average_Click" IsEnabled="False"/>
+                    <Separator />
+                </MenuItem>
             </Menu>
             
             <ToolBarTray Background="#FFF0F0F0">
                 <ToolBar x:Name="ToolBar_Main" Background="#FFF0F0F0" Loaded="ToolBar_Loaded">
                     
-                    <Button x:Name="Button_Open" ToolBar.OverflowMode="Never" ToolTip="Open Kinect2Kit Configuration File" Click="File_Open_Click">
+                    <Button x:Name="Button_File_Open" ToolBar.OverflowMode="Never" ToolTip="Open Kinect2Kit Configuration File" Click="File_Open_Click">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="/GestureTracker;component/Icons/folder_Open_16xMD.png"/>
                             <Label Padding="0">Open</Label>
@@ -54,21 +59,21 @@
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="Button_Track_Pause" ToolBar.OverflowMode="Never" ToolTip="Start" Visibility="Collapsed">
+                    <Button x:Name="Button_Track_Pause" ToolBar.OverflowMode="Never" ToolTip="Pause" Click="Track_Pause_Click" Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Pause_16xMD.png"/>
                             <Label Padding="0">Pause</Label>
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="Button_Track_Resume" ToolBar.OverflowMode="Never" ToolTip="Start" Visibility="Collapsed">
+                    <Button x:Name="Button_Track_Resume" ToolBar.OverflowMode="Never" ToolTip="Resume" Click="Track_Resume_Click" Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Pause_16xMD.png"/>
+                            <Image Source="/GestureTracker;component/Icons/refresh_16xMD.png"/>
                             <Label Padding="0">Resume</Label>
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="Button_Track_Stop" ToolBar.OverflowMode="Never" ToolTip="Stop" Visibility="Collapsed">
+                    <Button x:Name="Button_Track_Stop" ToolBar.OverflowMode="Never" ToolTip="Stop" Click="Track_Stop_Click" Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Stop_16xMD.png"/>
                             <Label Padding="0">Stop</Label>
@@ -79,7 +84,7 @@
         </StackPanel>
         
         <Viewbox Grid.Row="1" HorizontalAlignment="Center">
-            <Image Source="{Binding KinectImageSource}" Stretch="UniformToFill" />
+            <Image Source="{Binding TrackingImageSource}" Stretch="UniformToFill" />
         </Viewbox>
 
         <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="{StaticResource MediumGreyBrush}">
