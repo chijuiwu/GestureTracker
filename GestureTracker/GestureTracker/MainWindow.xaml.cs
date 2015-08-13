@@ -50,13 +50,16 @@ namespace GestureTracker
         private bool trackingTaskPaused;
 
         /// <summary>
-        /// All or only average skeletons
+        /// View all or only average skeletons
         /// </summary>
-        private bool viewAll;
+        private bool viewAll = true;
         /// <summary>
-        /// The name of the Kinect providing
+        /// The field of view with respect to the skeletons
         /// </summary>
         private string selectedViewName;
+
+        private event TrackingResultHandler TrackingResultArrived;
+        private delegate void TrackingResultHandler(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives);
 
         public MainWindow()
         {
@@ -81,11 +84,13 @@ namespace GestureTracker
             this.displayWidth = frameDescription.Width;
             this.displayHeight = frameDescription.Height;
 
+            this.TrackingResultArrived += this.OnTrackingResultArrived;
+
             this.DataContext = this;
 
             this.InitializeComponent();
 
-            this.StatusText = "Running...";
+            this.StatusText = "Application started.";
         }
 
         // Collapse toolbar overflow arrow
@@ -160,28 +165,25 @@ namespace GestureTracker
                 if (!Kinect2Kit.TryLoadSetup(setupFile))
                 {
                     MessageBox.Show(this, "The server is not available. Is it running?", "Kinect2Kit");
-                    this.StatusText = "Kinect2Kit setup not loaded. The server is not available";
+                    this.StatusText = "Kinect2Kit setup was not loaded. The server is not available.";
+                    return;
                 }
 
-                // open file
-                this.MenuItem_File_Open.IsEnabled = false;
-                this.Button_File_Open.Visibility = Visibility.Collapsed;
-
-                // track
+                // TRACK
                 this.Menu_Track.IsEnabled = true;
                 this.MenuItem_Track_Start.Visibility = Visibility.Visible;
                 this.Button_Track_Start.Visibility = Visibility.Visible;
 
-                // view
-                foreach (Kinect2KitClientInfo view in Kinect2Kit.KinectClients)
+                // VIEW
+                foreach (Kinect2KitClientSetup view in Kinect2Kit.KinectClients)
                 {
                     MenuItem viewMenuitem = new MenuItem();
                     viewMenuitem.Header = view.Name;
                     viewMenuitem.Click += this.ViewMenuitem_Click;
                     this.Menu_View.Items.Add(viewMenuitem);
                 }
-                // check first view
-                MenuItem firstView = (MenuItem)this.Menu_View.Items.GetItemAt(0);
+                // Check first view
+                MenuItem firstView = (MenuItem)this.Menu_View.Items.GetItemAt(3);
                 firstView.IsChecked = true;
                 this.selectedViewName = (string)firstView.Header;
 
@@ -220,12 +222,16 @@ namespace GestureTracker
         #region TRACK
         private async void Track_Start_Click(object sender, RoutedEventArgs e)
         {
+            // Disable File
+            this.MenuItem_File_Open.IsEnabled = false;
+            this.Button_File_Open.Visibility = Visibility.Collapsed;
+
             SetupSessionDialog setupSession = new SetupSessionDialog();
             setupSession.Owner = Application.Current.MainWindow;
             setupSession.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             if (setupSession.ShowDialog() == true)
             {
-                // disable Start while waiting from the sever
+                // Disable Start while waiting from the sever
                 this.MenuItem_Track_Start.IsEnabled = false;
                 this.Button_Track_Start.Visibility = Visibility.Collapsed;
 
@@ -244,21 +250,29 @@ namespace GestureTracker
 
                     this.StatusText = String.Format("Kinect2Kit server @ {0} started session {1}.", Kinect2Kit.ServerEndpoint, sessionName);
 
-                    // begin tracking task
+                    // Start tracking task
                     this.trackingTaskTokenSource = new CancellationTokenSource();
                     this.trackingTask = Task.Run(() => this.Track(this.trackingTaskTokenSource.Token), this.trackingTaskTokenSource.Token);
                 }
                 else
                 {
-                    // re-enable Start
+                    // Re-enable Start
                     this.MenuItem_Track_Start.IsEnabled = true;
                     this.Button_Track_Start.Visibility = Visibility.Visible;
+
+                    // Re-enable File
+                    this.MenuItem_File_Open.IsEnabled = true;
+                    this.Button_File_Open.Visibility = Visibility.Visible;
 
                     this.StatusText = String.Format("Kinect2Kit session {0} not started. Message: {1}.", sessionName, resp.ServerMessage);
                 }
             }
             else
             {
+                // Re-enable File
+                this.MenuItem_File_Open.IsEnabled = true;
+                this.Button_File_Open.Visibility = Visibility.Visible;
+
                 this.StatusText = "Kinect2Kit session not started.";
             }
         }
@@ -270,26 +284,47 @@ namespace GestureTracker
             if (resp.IsSuccessful)
             {
                 this.StatusText = String.Format("Kinect2Kit server @ {0} started calibration.", Kinect2Kit.ServerEndpoint);
-                while (true)
+
+                try
                 {
-                    ct.ThrowIfCancellationRequested();
+                    while (true)
+                    {
+                        ct.ThrowIfCancellationRequested();
 
-                    Kinect2KitCalibrationResponse calibrationResp = await Kinect2Kit.GetCalibrationStatus();
-                    if (calibrationResp.Finished)
-                    {
-                        this.StatusText = String.Format("Kinect2Kit server @ {0} finished calibration.", Kinect2Kit.ServerEndpoint);
-                        break;
-                    }
-                    else if (calibrationResp.AcquiringFrames)
-                    {
-                        this.StatusText = String.Format("Kinect2Kit server @ {0} was acquring frames. Required: {1}, Remained: {2}.", Kinect2Kit.ServerEndpoint, calibrationResp.RequiredFrames, calibrationResp.RemainedFrames);
-                    }
-                    else if (calibrationResp.ResolvingFrames)
-                    {
-                        this.StatusText = String.Format("Kinect2Kit server @ {0} was resolving frames.", Kinect2Kit.ServerEndpoint);
-                    }
+                        if (this.trackingTaskPaused)
+                        {
+                            this.StatusText = "Tracking paused.";
+                            continue;
+                        }
 
-                    await Task.Delay(30); // slow down
+                        Kinect2KitCalibrationResponse calibrationResp = await Kinect2Kit.GetCalibrationStatusAsync();
+                        if (calibrationResp.Finished)
+                        {
+                            this.StatusText = String.Format("Kinect2Kit server @ {0} finished calibration.", Kinect2Kit.ServerEndpoint);
+                            break;
+                        }
+                        else if (calibrationResp.AcquiringFrames)
+                        {
+                            if (calibrationResp.HasError)
+                            {
+                                this.StatusText = String.Format("Kinect2Kit server @ {0} was acquring frames. Error: {1}.", Kinect2Kit.ServerEndpoint, calibrationResp.Error);
+                            }
+                            else
+                            {
+                                this.StatusText = String.Format("Kinect2Kit server @ {0} was acquring frames. Required: {1}, Remained: {2}.", Kinect2Kit.ServerEndpoint, calibrationResp.RequiredFrames, calibrationResp.RemainedFrames);
+                            }
+                        }
+                        else if (calibrationResp.ResolvingFrames)
+                        {
+                            this.StatusText = String.Format("Kinect2Kit server @ {0} was resolving frames.", Kinect2Kit.ServerEndpoint);
+                        }
+
+                        await Task.Delay(100); // slow down
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
                 }
             }
 
@@ -298,32 +333,44 @@ namespace GestureTracker
             if (resp.IsSuccessful)
             {
                 this.StatusText = String.Format("Kinect2Kit server @ {0} started tracking.", Kinect2Kit.ServerEndpoint);
-                while (true)
-                {
-                    ct.ThrowIfCancellationRequested();
 
-                    if (!this.trackingTaskPaused)
+                try
+                {
+                    while (true)
                     {
-                        Kinect2KitTrackingResponse trackingResp = await Kinect2Kit.GetTrackingResult();
+                        ct.ThrowIfCancellationRequested();
+
+                        if (this.trackingTaskPaused)
+                        {
+                            this.StatusText = "Tracking paused.";
+                            continue;
+                        }
+
+                        Kinect2KitTrackingResponse trackingResp = await Kinect2Kit.GetTrackingResultAsync();
                         if (trackingResp.IsSuccessful)
                         {
-                            this.Tracking_ResultArrived(trackingResp.Timestamp, trackingResp.Perspectives);
+                            this.TrackingResultArrived(trackingResp.Timestamp, trackingResp.Perspectives);
                         }
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
                 }
             }
         }
 
-        private void StopTrackingTask()
+        private async void StopTrackingTask()
         {
             this.trackingTaskTokenSource.Cancel();
             try
             {
                 this.trackingTask.Wait();
+                Kinect2KitSimpleResponse stopResp = await Kinect2Kit.StopSessionAsync();
             }
             catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine("exception when stopping task");
+                System.Diagnostics.Debug.WriteLine("Exception when stopping task.");
             }
             finally
             {
@@ -331,51 +378,54 @@ namespace GestureTracker
             }
         }
 
-        private void Tracking_ResultArrived(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives)
+        private void OnTrackingResultArrived(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives)
         {
             // Update status
             this.StatusText = String.Format("Tracking result @ {0}.", timestamp);
 
-            using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
+            this.Dispatcher.BeginInvoke((Action)(() =>
             {
-                dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-
-                Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedViewName)).Value;
-
-                int penIndex = 0;
-
-                foreach (Kinect2KitPerson person in viewingPerspective.People)
+                using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
                 {
-                    Pen drawPen = this.bodyColors[penIndex++];
+                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
-                    // TODO Kinect2Kit doesn't send back this data
-                    //this.DrawClippedEdges(body, dc);
+                    Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedViewName)).Value;
 
-                    foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
+                    int penIndex = 0;
+
+                    foreach (Kinect2KitPerson person in viewingPerspective.People)
                     {
-                        IReadOnlyDictionary<JointType, Joint> joints = skeleton.Joints;
-                        Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
+                        Pen drawPen = this.bodyColors[penIndex++];
 
-                        foreach (JointType jointType in joints.Keys)
+                        // TODO Kinect2Kit doesn't send back this data
+                        //this.DrawClippedEdges(body, dc);
+
+                        foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
                         {
-                            CameraSpacePoint position = joints[jointType].Position;
-                            if (position.Z < 0)
+                            IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
+                            Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
+
+                            foreach (JointType jointType in joints.Keys)
                             {
-                                position.Z = 0.1f;
+                                CameraSpacePoint position = joints[jointType].CameraSpacePoint;
+                                if (position.Z < 0)
+                                {
+                                    position.Z = 0.1f;
+                                }
+                                DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
+                                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
                             }
-                            DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
-                            jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+
+                            this.DrawBody(joints, jointPoints, dc, drawPen);
                         }
-
-                        this.DrawBody(joints, jointPoints, dc, drawPen);
                     }
-                }
 
-                this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-            }
+                    this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                }
+            }));
         }
 
-        private void DrawBody(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
+        private void DrawBody(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
         {
             // Draw the bones
             foreach (var bone in Kinect2Bones.All)
@@ -406,10 +456,10 @@ namespace GestureTracker
             }
         }
 
-        private void DrawBone(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, JointType jointType0, JointType jointType1, DrawingContext drawingContext, Pen drawingPen)
+        private void DrawBone(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, JointType jointType0, JointType jointType1, DrawingContext drawingContext, Pen drawingPen)
         {
-            Joint joint0 = joints[jointType0];
-            Joint joint1 = joints[jointType1];
+            Kinect2KitJoint joint0 = joints[jointType0];
+            Kinect2KitJoint joint1 = joints[jointType1];
 
             // If we can't find either of these joints, exit
             if (joint0.TrackingState == TrackingState.NotTracked ||
@@ -460,16 +510,30 @@ namespace GestureTracker
             this.Button_Track_Pause.Visibility = Visibility.Collapsed;
 
             this.MenuItem_Track_Resume.IsEnabled = false;
-            this.MenuItem_Track_Resume.Visibility = Visibility.Collapsed;
+            this.Button_Track_Resume.Visibility = Visibility.Collapsed;
+
+            this.MenuItem_Track_Stop.IsEnabled = false;
+            this.Button_Track_Stop.Visibility = Visibility.Collapsed;
 
             this.StopTrackingTask();
 
             this.MenuItem_Track_Start.IsEnabled = true;
             this.Button_Track_Start.Visibility = Visibility.Visible;
 
+            this.MenuItem_File_Open.IsEnabled = true;
+            this.Button_File_Open.Visibility = Visibility.Visible;
+
             this.StatusText = "Tracking stopped.";
         }
 
         #endregion
+
+        private void View_All_Click(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void View_Average_Click(object sender, RoutedEventArgs e)
+        {
+        }
     }
 }

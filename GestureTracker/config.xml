@@ -1,12 +1,12 @@
 <Kinect2KitSetup>
     <Server>
-        <IPAddress>localhost</IPAddress>
+        <IPAddress>138.251.207.140</IPAddress>
         <Port>8000</Port>
     </Server>
     <Kinects>
         <Kinect>
-            <Name>TestClient</Name>
-            <IPAddress>127.0.0.1</IPAddress>
+            <Name>Client 1</Name>
+            <IPAddress>138.251.207.140</IPAddress>
             <TiltAngle>0.00</TiltAngle>
             <Height>1.00</Height>
         </Kinect>
