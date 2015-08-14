@@ -36,6 +36,7 @@ namespace GestureTracker
         private Brush trackedJointBrush;
         private Brush inferredJointBrush;
         private Pen inferredBonePen;
+        private Pen averageBonePen;
         private double jointThickness;
 
         private KinectSensor kinectSensor;
@@ -49,17 +50,12 @@ namespace GestureTracker
         private CancellationTokenSource trackingTaskTokenSource;
         private bool trackingTaskPaused;
 
-        /// <summary>
-        /// View all or only average skeletons
-        /// </summary>
-        private bool viewAll = true;
-        /// <summary>
-        /// The field of view with respect to the skeletons
-        /// </summary>
-        private string selectedViewName;
-
         private event TrackingResultHandler TrackingResultArrived;
         private delegate void TrackingResultHandler(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives);
+
+        private bool viewAll = true;
+        private MenuItem selectedKinectFOV;
+        private List<MenuItem> kinectFOVMenuItems;
 
         public MainWindow()
         {
@@ -75,6 +71,7 @@ namespace GestureTracker
             this.trackedJointBrush = new SolidColorBrush(Color.FromArgb(255, 68, 192, 68));
             this.inferredJointBrush = Brushes.Yellow;
             this.inferredBonePen = new Pen(Brushes.Gray, 1);
+            this.averageBonePen = new Pen(Brushes.White, 6);
             this.jointThickness = 3;
 
             this.kinectSensor = KinectSensor.GetDefault();
@@ -85,6 +82,8 @@ namespace GestureTracker
             this.displayHeight = frameDescription.Height;
 
             this.TrackingResultArrived += this.OnTrackingResultArrived;
+
+            this.kinectFOVMenuItems = new List<MenuItem>();
 
             this.DataContext = this;
 
@@ -177,15 +176,16 @@ namespace GestureTracker
                 // VIEW
                 foreach (Kinect2KitClientSetup view in Kinect2Kit.KinectClients)
                 {
-                    MenuItem viewMenuitem = new MenuItem();
-                    viewMenuitem.Header = view.Name;
-                    viewMenuitem.Click += this.ViewMenuitem_Click;
-                    this.Menu_View.Items.Add(viewMenuitem);
+                    MenuItem kinectFOVMenuItem = new MenuItem();
+                    kinectFOVMenuItem.Header = view.Name;
+                    kinectFOVMenuItem.Click += this.KinectFOVMenuitem_Click;
+                    this.Menu_View.Items.Add(kinectFOVMenuItem);
+                    this.kinectFOVMenuItems.Add(kinectFOVMenuItem);
                 }
-                // Check first view
-                MenuItem firstView = (MenuItem)this.Menu_View.Items.GetItemAt(3);
-                firstView.IsChecked = true;
-                this.selectedViewName = (string)firstView.Header;
+                // Select first view
+                MenuItem firstKinectFOV = this.kinectFOVMenuItems.ElementAt(0);
+                firstKinectFOV.IsChecked = true;
+                this.selectedKinectFOV = firstKinectFOV;
 
                 this.StatusText = String.Format("Kinect2Kit setup loaded from {0}.", setupFile);
             }
@@ -202,19 +202,29 @@ namespace GestureTracker
         #endregion
 
         #region VIEW
-        /// <summary>
-        /// Check the selected view
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void ViewMenuitem_Click(object sender, RoutedEventArgs e)
+        private void View_All_Click(object sender, RoutedEventArgs e)
         {
-            foreach (MenuItem view in this.Menu_View.Items)
-            {
-                view.IsChecked = false;
-            }
-            MenuItem clicked = sender as MenuItem;
-            clicked.IsChecked = true;
+            this.viewAll = true;
+
+            this.MenuItem_View_All.IsChecked = true;
+            this.MenuItem_View_Average.IsChecked = false;
+        }
+
+        private void View_Average_Click(object sender, RoutedEventArgs e)
+        {
+            this.viewAll = false;
+
+            this.MenuItem_View_All.IsChecked = false;
+            this.MenuItem_View_Average.IsChecked = true;
+        }
+
+        private void KinectFOVMenuitem_Click(object sender, RoutedEventArgs e)
+        {
+            this.selectedKinectFOV.IsChecked = false;
+
+            MenuItem selectedKinectFov = sender as MenuItem;
+            selectedKinectFov.IsChecked = true;
+            this.selectedKinectFOV = selectedKinectFov;
         }
 
         #endregion
@@ -389,7 +399,7 @@ namespace GestureTracker
                 {
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
-                    Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedViewName)).Value;
+                    Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedKinectFOV.Header)).Value;
 
                     int penIndex = 0;
 
@@ -400,29 +410,46 @@ namespace GestureTracker
                         // TODO Kinect2Kit doesn't send back this data
                         //this.DrawClippedEdges(body, dc);
 
-                        foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
+                        if (viewAll)
                         {
-                            IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
-                            Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
-
-                            foreach (JointType jointType in joints.Keys)
+                            foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
                             {
-                                CameraSpacePoint position = joints[jointType].CameraSpacePoint;
-                                if (position.Z < 0)
-                                {
-                                    position.Z = 0.1f;
-                                }
-                                DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
-                                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+                                IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
+                                Dictionary<JointType, Point> jointPoints = this.GetJointsPoints(joints);
+                                this.DrawBody(joints, jointPoints, dc, drawPen);
                             }
-
-                            this.DrawBody(joints, jointPoints, dc, drawPen);
                         }
+
+                        IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
+                        foreach (Kinect2KitJoint joint in averageJoints.Values)
+                        {
+                            System.Diagnostics.Debug.WriteLine(joint.CameraSpacePoint.X + ", " + joint.CameraSpacePoint.Y + ", " + joint.CameraSpacePoint.Z);
+                        }
+                        Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
+                        this.DrawBody(averageJoints, averageJointPoints, dc, this.averageBonePen);
                     }
 
                     this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                 }
             }));
+        }
+
+        private Dictionary<JointType, Point> GetJointsPoints(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints)
+        {
+            Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
+
+            foreach (JointType jointType in joints.Keys)
+            {
+                CameraSpacePoint position = joints[jointType].CameraSpacePoint;
+                if (position.Z < 0)
+                {
+                    position.Z = 0.1f;
+                }
+                DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
+                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+            }
+
+            return jointPoints;
         }
 
         private void DrawBody(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
@@ -458,12 +485,16 @@ namespace GestureTracker
 
         private void DrawBone(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, JointType jointType0, JointType jointType1, DrawingContext drawingContext, Pen drawingPen)
         {
+            if (!joints.ContainsKey(jointType0) || !joints.ContainsKey(jointType1))
+            {
+                return;
+            }
+
             Kinect2KitJoint joint0 = joints[jointType0];
             Kinect2KitJoint joint1 = joints[jointType1];
 
             // If we can't find either of these joints, exit
-            if (joint0.TrackingState == TrackingState.NotTracked ||
-                joint1.TrackingState == TrackingState.NotTracked)
+            if (joint0.TrackingState == TrackingState.NotTracked || joint1.TrackingState == TrackingState.NotTracked)
             {
                 return;
             }
@@ -527,13 +558,5 @@ namespace GestureTracker
         }
 
         #endregion
-
-        private void View_All_Click(object sender, RoutedEventArgs e)
-        {
-        }
-
-        private void View_Average_Click(object sender, RoutedEventArgs e)
-        {
-        }
     }
 }
