@@ -34,8 +34,8 @@
                 </MenuItem>
 
                 <MenuItem x:Name="Menu_View" Header="_VIEW">
-                    <MenuItem x:Name="MenuItem_View_All" Header="_All" Click="View_All_Click" IsChecked="True" IsEnabled="False"/>
-                    <MenuItem x:Name="MenuItem_View_Average" Header="_Average" Click="View_Average_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="MenuItem_View_All" Header="_All" Click="View_All_Click" IsChecked="True"/>
+                    <MenuItem x:Name="MenuItem_View_Average" Header="_Average" Click="View_Average_Click"/>
                     <Separator />
                 </MenuItem>
             </Menu>

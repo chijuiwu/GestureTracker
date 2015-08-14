@@ -80,6 +80,7 @@ namespace GestureTracker
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
             this.displayWidth = frameDescription.Width;
             this.displayHeight = frameDescription.Height;
+            this.ClearTrackingImage();
 
             this.TrackingResultArrived += this.OnTrackingResultArrived;
 
@@ -377,6 +378,7 @@ namespace GestureTracker
             {
                 this.trackingTask.Wait();
                 Kinect2KitSimpleResponse stopResp = await Kinect2Kit.StopSessionAsync();
+                this.ClearTrackingImage();
             }
             catch (Exception)
             {
@@ -386,6 +388,17 @@ namespace GestureTracker
             {
                 this.trackingTaskTokenSource.Dispose();
             }
+        }
+
+        private void ClearTrackingImage()
+        {
+            this.Dispatcher.BeginInvoke((Action)(() =>
+            {
+                using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
+                {
+                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                }
+            }));
         }
 
         private void OnTrackingResultArrived(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives)
