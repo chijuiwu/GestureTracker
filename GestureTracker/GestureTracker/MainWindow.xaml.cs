@@ -52,7 +52,6 @@ namespace GestureTracker
 
         private event TrackingResultHandler TrackingResultArrived;
         private delegate void TrackingResultHandler(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives);
-        private bool FinishedTrackingResult;
 
         private bool viewAll = true;
         private MenuItem selectedKinectFOV;
@@ -84,7 +83,6 @@ namespace GestureTracker
             this.ClearTrackingImage();
 
             this.TrackingResultArrived += this.OnTrackingResultArrived;
-            this.FinishedTrackingResult = true;
 
             this.kinectFOVMenuItems = new List<MenuItem>();
 
@@ -359,15 +357,9 @@ namespace GestureTracker
                             continue;
                         }
 
-                        if (!this.FinishedTrackingResult)
-                        {
-                            continue;
-                        }
-
                         Kinect2KitTrackingResponse trackingResp = await Kinect2Kit.GetTrackingResultAsync();
                         if (trackingResp.IsSuccessful)
                         {
-                            this.FinishedTrackingResult = false;
                             this.TrackingResultArrived(trackingResp.Timestamp, trackingResp.Perspectives);
                         }
                     }
@@ -440,18 +432,12 @@ namespace GestureTracker
                         }
 
                         IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
-                        foreach (Kinect2KitJoint joint in averageJoints.Values)
-                        {
-                            System.Diagnostics.Debug.WriteLine(joint.CameraSpacePoint.X + ", " + joint.CameraSpacePoint.Y + ", " + joint.CameraSpacePoint.Z);
-                        }
                         Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
                         this.DrawBody(averageJoints, averageJointPoints, dc, this.averageBonePen);
                     }
 
                     this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                 }
-
-                this.FinishedTrackingResult = true;
             }));
         }
 
