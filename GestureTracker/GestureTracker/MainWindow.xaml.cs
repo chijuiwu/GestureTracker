@@ -52,6 +52,7 @@ namespace GestureTracker
 
         private event TrackingResultHandler TrackingResultArrived;
         private delegate void TrackingResultHandler(double timestamp, Dictionary<string, Kinect2KitPerspective> perspectives);
+        private bool FinishedTrackingResult;
 
         private bool viewAll = true;
         private MenuItem selectedKinectFOV;
@@ -83,6 +84,7 @@ namespace GestureTracker
             this.ClearTrackingImage();
 
             this.TrackingResultArrived += this.OnTrackingResultArrived;
+            this.FinishedTrackingResult = true;
 
             this.kinectFOVMenuItems = new List<MenuItem>();
 
@@ -357,15 +359,23 @@ namespace GestureTracker
                             continue;
                         }
 
+                        if (!this.FinishedTrackingResult)
+                        {
+                            continue;
+                        }
+
                         Kinect2KitTrackingResponse trackingResp = await Kinect2Kit.GetTrackingResultAsync();
                         if (trackingResp.IsSuccessful)
                         {
+                            this.FinishedTrackingResult = false;
                             this.TrackingResultArrived(trackingResp.Timestamp, trackingResp.Perspectives);
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
+                    this.StatusText = "Tracking stopped.";
+                    this.ClearTrackingImage();
                     return;
                 }
             }
@@ -378,7 +388,6 @@ namespace GestureTracker
             {
                 this.trackingTask.Wait();
                 Kinect2KitSimpleResponse stopResp = await Kinect2Kit.StopSessionAsync();
-                this.ClearTrackingImage();
             }
             catch (Exception)
             {
@@ -420,9 +429,6 @@ namespace GestureTracker
                     {
                         Pen drawPen = this.bodyColors[penIndex++];
 
-                        // TODO Kinect2Kit doesn't send back this data
-                        //this.DrawClippedEdges(body, dc);
-
                         if (viewAll)
                         {
                             foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
@@ -444,6 +450,8 @@ namespace GestureTracker
 
                     this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                 }
+
+                this.FinishedTrackingResult = true;
             }));
         }
 
