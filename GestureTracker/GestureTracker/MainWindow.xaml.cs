@@ -470,23 +470,13 @@ namespace GestureTracker
             // Draw the joints
             foreach (JointType jointType in joints.Keys)
             {
-                Brush drawBrush = null;
-
-                TrackingState trackingState = joints[jointType].TrackingState;
-
-                if (trackingState == TrackingState.Tracked)
+                // draw only tracked joints
+                if (joints[jointType].TrackingState != TrackingState.Tracked)
                 {
-                    drawBrush = this.trackedJointBrush;
-                }
-                else if (trackingState == TrackingState.Inferred)
-                {
-                    drawBrush = this.inferredJointBrush;
+                    continue;
                 }
 
-                if (drawBrush != null)
-                {
-                    drawingContext.DrawEllipse(drawBrush, null, jointPoints[jointType], this.jointThickness, this.jointThickness);
-                }
+                drawingContext.DrawEllipse(this.trackedJointBrush, null, jointPoints[jointType], this.jointThickness, this.jointThickness);
             }
         }
 
@@ -500,20 +490,13 @@ namespace GestureTracker
             Kinect2KitJoint joint0 = joints[jointType0];
             Kinect2KitJoint joint1 = joints[jointType1];
 
-            // If we can't find either of these joints, exit
-            if (joint0.TrackingState == TrackingState.NotTracked || joint1.TrackingState == TrackingState.NotTracked)
+            // draw only bones consisting of tracked joints
+            if (joint0.TrackingState != TrackingState.Tracked || joint1.TrackingState != TrackingState.Tracked)
             {
                 return;
             }
 
-            // We assume all drawn bones are inferred unless BOTH joints are tracked
-            Pen drawPen = this.inferredBonePen;
-            if ((joint0.TrackingState == TrackingState.Tracked) && (joint1.TrackingState == TrackingState.Tracked))
-            {
-                drawPen = drawingPen;
-            }
-
-            drawingContext.DrawLine(drawPen, jointPoints[jointType0], jointPoints[jointType1]);
+            drawingContext.DrawLine(drawingPen, jointPoints[jointType0], jointPoints[jointType1]);
         }
 
         private void Track_Pause_Click(object sender, RoutedEventArgs e)
