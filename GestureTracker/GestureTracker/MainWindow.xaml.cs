@@ -428,12 +428,14 @@ namespace GestureTracker
                                 IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
                                 Dictionary<JointType, Point> jointPoints = this.GetJointsPoints(joints);
                                 this.DrawBody(joints, jointPoints, dc, drawPen);
+                                //System.Diagnostics.Debug.WriteLine("skel head" + joints[JointType.Head].CameraSpacePoint.X);
                             }
                         }
 
                         IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
                         Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
                         this.DrawBody(averageJoints, averageJointPoints, dc, this.averageBonePen);
+                        //System.Diagnostics.Debug.WriteLine("avg head" + averageJoints[JointType.Head].CameraSpacePoint.X);
                     }
 
                     this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));

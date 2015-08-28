@@ -79,6 +79,15 @@
                             <Label Padding="0">Stop</Label>
                         </StackPanel>
                     </Button>
+
+                    <Separator />
+
+                    <Button x:Name="Button_Screenshot" ToolBar.OverflowMode="Never" ToolTip="Take a screenshot">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Stop_16xMD.png"/>
+                            <Label Padding="0">Screenshot</Label>
+                        </StackPanel>
+                    </Button>
                 </ToolBar>
             </ToolBarTray>
         </StackPanel>
