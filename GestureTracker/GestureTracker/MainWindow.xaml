@@ -82,9 +82,9 @@
 
                     <Separator />
 
-                    <Button x:Name="Button_Screenshot" ToolBar.OverflowMode="Never" ToolTip="Take a screenshot">
+                    <Button x:Name="Button_Screenshot" ToolBar.OverflowMode="Never" ToolTip="Take a screenshot" Click="Screenshot_Click">
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="/GestureTracker;component/Icons/StatusAnnotations_Stop_16xMD.png"/>
+                            <Image Source="/GestureTracker;component/Icons/Camera_16xMD.png"/>
                             <Label Padding="0">Screenshot</Label>
                         </StackPanel>
                     </Button>

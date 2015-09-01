@@ -12,10 +12,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.ComponentModel;
 using System.Net.Http;
 using System.IO;
+using System.Globalization;
 using Microsoft.Win32;
 using System.Xml.Linq;
 using Microsoft.Kinect;
@@ -549,6 +549,50 @@ namespace GestureTracker
             this.StatusText = "Tracking stopped.";
         }
 
+        #endregion
+
+        #region Screenshot
+        private void Screenshot_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.trackingImageSource != null)
+            {
+                Image drawingImage = new Image { Source = this.trackingImageSource };
+                double width = this.trackingImageSource.Width;
+                double height = this.trackingImageSource.Height;
+                drawingImage.Arrange(new Rect(0, 0, width, height));
+
+                RenderTargetBitmap bitmap = new RenderTargetBitmap((int)width, (int)height, 96.0, 96.0, PixelFormats.Pbgra32);
+                bitmap.Render(drawingImage);
+
+                // create a png bitmap encoder which knows how to save a .png file
+                BitmapEncoder encoder = new PngBitmapEncoder();
+
+                // create frame from the writable bitmap and add to encoder
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+
+                string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
+
+                string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+
+                string path = Path.Combine(myPhotos, "GestureTracker-" + time + ".png");
+
+                // write the new file to disk
+                try
+                {
+                    // FileStream is IDisposable
+                    using (FileStream fs = new FileStream(path, FileMode.Create))
+                    {
+                        encoder.Save(fs);
+                    }
+
+                    this.StatusText = string.Format("Saved screenshot to {0}", path);
+                }
+                catch (IOException)
+                {
+                    this.StatusText = string.Format("Failed to write screenshot to {0}", path);
+                }
+            }
+        }
         #endregion
     }
 }
