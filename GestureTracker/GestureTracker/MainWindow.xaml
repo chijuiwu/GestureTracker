@@ -1,7 +1,8 @@
-﻿<Window x:Class="GestureTracker.MainWindow"
+﻿<Window x:Name="GestureTrackerWindow" x:Class="GestureTracker.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Gesture Tracker" Height="600" Width="800"
+        Loaded="MainWindow_Loaded"
         Closing="MainWindow_Closing">
 
     <Window.Resources>
@@ -91,9 +92,12 @@
                 </ToolBar>
             </ToolBarTray>
         </StackPanel>
-        
-        <Viewbox Grid.Row="1" HorizontalAlignment="Center">
-            <Image Source="{Binding TrackingImageSource}" Stretch="UniformToFill" />
+
+        <Viewbox x:Name="GestureTrackerViewbox" Grid.Row="1" HorizontalAlignment="Center" Stretch="UniformToFill">
+            <Grid>
+                <Image Source="{Binding CameraImageSource}" Stretch="UniformToFill" />
+                <Canvas Background="Transparent" Name="SkeletonCanvas"></Canvas>
+            </Grid>
         </Viewbox>
 
         <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="{StaticResource MediumGreyBrush}">

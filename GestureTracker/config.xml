@@ -1,18 +1,18 @@
 <Kinect2KitSetup>
     <Server>
-        <IPAddress>138.251.207.140</IPAddress>
+        <IPAddress>169.254.10.51</IPAddress>
         <Port>8000</Port>
     </Server>
     <Kinects>
         <Kinect>
             <Name>Charles</Name>
-            <IPAddress>138.251.207.140</IPAddress>
+            <IPAddress>169.254.10.51</IPAddress>
             <TiltAngle>0.00</TiltAngle>
             <Height>1.00</Height>
         </Kinect>
         <Kinect>
             <Name>David</Name>
-            <IPAddress>138.251.213.82</IPAddress>
+            <IPAddress>169.254.52.103</IPAddress>
             <TiltAngle>0.00</TiltAngle>
             <Height>2.00</Height>
         </Kinect>

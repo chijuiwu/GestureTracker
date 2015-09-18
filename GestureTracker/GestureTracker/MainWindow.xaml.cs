@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Shapes;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -40,6 +41,8 @@ namespace GestureTracker
         private double jointThickness;
 
         private KinectSensor kinectSensor;
+        private ColorFrameReader colorFrameReader = null;
+        private WriteableBitmap colorBitmap = null;
         private CoordinateMapper coordinateMapper;
         private int displayWidth, displayHeight;
 
@@ -76,10 +79,17 @@ namespace GestureTracker
 
             this.kinectSensor = KinectSensor.GetDefault();
             this.kinectSensor.Open();
+
             this.coordinateMapper = this.kinectSensor.CoordinateMapper;
+
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
             this.displayWidth = frameDescription.Width;
             this.displayHeight = frameDescription.Height;
+
+            this.colorFrameReader = this.kinectSensor.ColorFrameSource.OpenReader();
+            FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.CreateFrameDescription(ColorImageFormat.Bgra);
+            this.colorBitmap = new WriteableBitmap(colorFrameDescription.Width, colorFrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
+
             this.ClearTrackingImage();
 
             this.TrackingResultArrived += this.OnTrackingResultArrived;
@@ -91,6 +101,14 @@ namespace GestureTracker
             this.InitializeComponent();
 
             this.StatusText = "Application started.";
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (this.colorFrameReader != null)
+            {
+                this.colorFrameReader.FrameArrived += this.Reader_ColorFrameArrived;
+            }
         }
 
         // Collapse toolbar overflow arrow
@@ -116,6 +134,13 @@ namespace GestureTracker
             {
                 this.StopTrackingTask();
             }
+
+            if (this.colorFrameReader != null)
+            {
+                this.colorFrameReader.Dispose();
+                this.colorFrameReader = null;
+            }
+
             if (this.kinectSensor != null)
             {
                 this.kinectSensor.Close();
@@ -129,6 +154,15 @@ namespace GestureTracker
             get
             {
                 return this.trackingImageSource;
+            }
+        }
+
+
+        public ImageSource CameraImageSource
+        {
+            get
+            {
+                return this.colorBitmap;
             }
         }
 
@@ -395,10 +429,7 @@ namespace GestureTracker
         {
             this.Dispatcher.BeginInvoke((Action)(() =>
             {
-                using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
-                {
-                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-                }
+                this.SkeletonCanvas.Children.Clear();
             }));
         }
 
@@ -409,9 +440,11 @@ namespace GestureTracker
 
             this.Dispatcher.BeginInvoke((Action)(() =>
             {
-                using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
-                {
-                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                this.SkeletonCanvas.Children.Clear();
+
+                //using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
+                //{
+                //    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
                     Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedKinectFOV.Header)).Value;
 
@@ -427,22 +460,61 @@ namespace GestureTracker
                             {
                                 IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
                                 Dictionary<JointType, Point> jointPoints = this.GetJointsPoints(joints);
-                                this.DrawBody(joints, jointPoints, dc, drawPen);
-                                //System.Diagnostics.Debug.WriteLine("skel head" + joints[JointType.Head].CameraSpacePoint.X);
+                                this.DrawBody(joints, jointPoints, drawPen);
                             }
                         }
 
                         IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
                         Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
-                        this.DrawBody(averageJoints, averageJointPoints, dc, this.averageBonePen);
-                        //System.Diagnostics.Debug.WriteLine("avg head" + averageJoints[JointType.Head].CameraSpacePoint.X);
+
+                        Pen averageSkeletonPen;
+
+                        if (viewAll)
+                        {
+                            averageSkeletonPen = this.averageBonePen;
+                        }
+                        else
+                        {
+                            averageSkeletonPen = drawPen;
+                        }
+
+                        this.DrawBody(averageJoints, averageJointPoints, averageSkeletonPen);
                     }
 
                     this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-                }
+                //}
             }));
         }
 
+        private void Reader_ColorFrameArrived(object sender, ColorFrameArrivedEventArgs e)
+        {
+            // ColorFrame is IDisposable
+            using (ColorFrame colorFrame = e.FrameReference.AcquireFrame())
+            {
+                if (colorFrame != null)
+                {
+                    FrameDescription colorFrameDescription = colorFrame.FrameDescription;
+
+                    using (KinectBuffer colorBuffer = colorFrame.LockRawImageBuffer())
+                    {
+                        this.colorBitmap.Lock();
+
+                        // verify data and write the new color frame data to the display bitmap
+                        if ((colorFrameDescription.Width == this.colorBitmap.PixelWidth) && (colorFrameDescription.Height == this.colorBitmap.PixelHeight))
+                        {
+                            colorFrame.CopyConvertedFrameDataToIntPtr(
+                                this.colorBitmap.BackBuffer,
+                                (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
+                                ColorImageFormat.Bgra);
+
+                            this.colorBitmap.AddDirtyRect(new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight));
+                        }
+
+                        this.colorBitmap.Unlock();
+                    }
+                }
+            }
+        }
         private Dictionary<JointType, Point> GetJointsPoints(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints)
         {
             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -454,35 +526,63 @@ namespace GestureTracker
                 {
                     position.Z = 0.1f;
                 }
+
+                Point point = new Point();
+
                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
-                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+                ColorSpacePoint colorSpacePoint = this.coordinateMapper.MapCameraPointToColorSpace(position);
+
+                point.X = float.IsInfinity(colorSpacePoint.X) ? 0 : colorSpacePoint.X;
+                point.Y = float.IsInfinity(colorSpacePoint.Y) ? 0 : colorSpacePoint.Y;
+
+                if (point.X == 0 && point.Y == 0)
+                {
+                    continue;
+                }
+
+                jointPoints[jointType] = point;
             }
 
             return jointPoints;
         }
 
-        private void DrawBody(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
+        private void DrawBody(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, Pen drawingPen)
         {
             // Draw the bones
             foreach (var bone in Kinect2Bones.All)
             {
-                this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, drawingPen);
+                this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingPen);
             }
 
             // Draw the joints
             foreach (JointType jointType in joints.Keys)
             {
+                if (!jointPoints.ContainsKey(jointType))
+                {
+                    continue;
+                }
+
                 // draw only tracked joints
                 if (joints[jointType].TrackingState != TrackingState.Tracked)
                 {
                     continue;
                 }
 
-                drawingContext.DrawEllipse(this.trackedJointBrush, null, jointPoints[jointType], this.jointThickness, this.jointThickness);
+                Ellipse joint = new Ellipse
+                {
+                    Fill = this.trackedJointBrush,
+                    Width = 30,
+                    Height = 30,
+                };
+
+                Point point = jointPoints[jointType];
+                Canvas.SetLeft(joint, point.X - joint.Width / 2);
+                Canvas.SetTop(joint, point.Y - joint.Height / 2);
+                this.SkeletonCanvas.Children.Add(joint);
             }
         }
 
-        private void DrawBone(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, JointType jointType0, JointType jointType1, DrawingContext drawingContext, Pen drawingPen)
+        private void DrawBone(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints, IDictionary<JointType, Point> jointPoints, JointType jointType0, JointType jointType1, Pen drawingPen)
         {
             if (!joints.ContainsKey(jointType0) || !joints.ContainsKey(jointType1))
             {
@@ -498,7 +598,24 @@ namespace GestureTracker
                 return;
             }
 
-            drawingContext.DrawLine(drawingPen, jointPoints[jointType0], jointPoints[jointType1]);
+            if (!jointPoints.ContainsKey(jointType0) || !jointPoints.ContainsKey(jointType1))
+            {
+                return;
+            }
+
+            Point point1 = jointPoints[jointType0];
+            Point point2 = jointPoints[jointType1];
+
+            Line bone = new Line
+            {
+                Stroke = drawingPen.Brush,
+                StrokeThickness = 10,
+                X1 = point1.X,
+                Y1 = point1.Y,
+                X2 = point2.X,
+                Y2 = point2.Y
+            };
+            this.SkeletonCanvas.Children.Add(bone);
         }
 
         private void Track_Pause_Click(object sender, RoutedEventArgs e)
@@ -554,43 +671,39 @@ namespace GestureTracker
         #region Screenshot
         private void Screenshot_Click(object sender, RoutedEventArgs e)
         {
-            if (this.trackingImageSource != null)
+            Rect bounds = VisualTreeHelper.GetDescendantBounds(this.GestureTrackerWindow);
+            RenderTargetBitmap renderTarget = new RenderTargetBitmap((Int32)bounds.Width, (Int32)bounds.Height, 96, 96, PixelFormats.Pbgra32);
+
+            DrawingVisual visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
             {
-                Image drawingImage = new Image { Source = this.trackingImageSource };
-                double width = this.trackingImageSource.Width;
-                double height = this.trackingImageSource.Height;
-                drawingImage.Arrange(new Rect(0, 0, width, height));
+                VisualBrush visualBrush = new VisualBrush(this.GestureTrackerWindow);
+                context.DrawRectangle(visualBrush, null, new Rect(new Point(), bounds.Size));
+            }
 
-                RenderTargetBitmap bitmap = new RenderTargetBitmap((int)width, (int)height, 96.0, 96.0, PixelFormats.Pbgra32);
-                bitmap.Render(drawingImage);
+            renderTarget.Render(visual);
 
-                // create a png bitmap encoder which knows how to save a .png file
-                BitmapEncoder encoder = new PngBitmapEncoder();
+            PngBitmapEncoder bitmapEncoder = new PngBitmapEncoder();
+            bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
 
-                // create frame from the writable bitmap and add to encoder
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
+            string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            string path = System.IO.Path.Combine(myPhotos, "GestureTracker-" + time + ".png");
 
-                string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
-
-                string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-
-                string path = Path.Combine(myPhotos, "GestureTracker-" + time + ".png");
-
-                // write the new file to disk
-                try
+            // write the new file to disk
+            try
+            {
+                // FileStream is IDisposable
+                using (FileStream fs = new FileStream(path, FileMode.Create))
                 {
-                    // FileStream is IDisposable
-                    using (FileStream fs = new FileStream(path, FileMode.Create))
-                    {
-                        encoder.Save(fs);
-                    }
+                    bitmapEncoder.Save(fs);
+                }
 
-                    this.StatusText = string.Format("Saved screenshot to {0}", path);
-                }
-                catch (IOException)
-                {
-                    this.StatusText = string.Format("Failed to write screenshot to {0}", path);
-                }
+                this.StatusText = string.Format("Saved screenshot to {0}", path);
+            }
+            catch (IOException)
+            {
+                this.StatusText = string.Format("Failed to write screenshot to {0}", path);
             }
         }
         #endregion
