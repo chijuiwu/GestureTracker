@@ -442,47 +442,43 @@ namespace GestureTracker
             {
                 this.SkeletonCanvas.Children.Clear();
 
-                //using (DrawingContext dc = this.trackingImageDrawingGroup.Open())
-                //{
-                //    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedKinectFOV.Header)).Value;
 
-                    Kinect2KitPerspective viewingPerspective = perspectives.First(p => p.Key.Equals(this.selectedKinectFOV.Header)).Value;
+                int penIndex = 0;
 
-                    int penIndex = 0;
+                foreach (Kinect2KitPerson person in viewingPerspective.People)
+                {
+                    Pen personPen = this.bodyColors[penIndex++];
 
-                    foreach (Kinect2KitPerson person in viewingPerspective.People)
+                    if (viewAll)
                     {
-                        Pen drawPen = this.bodyColors[penIndex++];
-
-                        if (viewAll)
+                        foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
                         {
-                            foreach (Kinect2KitSkeleton skeleton in person.Skeletons.Values)
-                            {
-                                IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
-                                Dictionary<JointType, Point> jointPoints = this.GetJointsPoints(joints);
-                                this.DrawBody(joints, jointPoints, drawPen);
-                            }
+                            IReadOnlyDictionary<JointType, Kinect2KitJoint> joints = skeleton.Joints;
+                            Dictionary<JointType, Point> jointPoints = this.GetJointsPoints(joints);
+                            this.DrawBody(joints, jointPoints, personPen);
                         }
-
-                        IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
-                        Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
-
-                        Pen averageSkeletonPen;
-
-                        if (viewAll)
-                        {
-                            averageSkeletonPen = this.averageBonePen;
-                        }
-                        else
-                        {
-                            averageSkeletonPen = drawPen;
-                        }
-
-                        this.DrawBody(averageJoints, averageJointPoints, averageSkeletonPen);
                     }
 
-                    this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-                //}
+                    IReadOnlyDictionary<JointType, Kinect2KitJoint> averageJoints = person.AverageSkeleton;
+                    Dictionary<JointType, Point> averageJointPoints = this.GetJointsPoints(averageJoints);
+
+                    Pen averageSkeletonPen;
+
+                    if (viewAll)
+                    {
+                        averageSkeletonPen = this.averageBonePen;
+                    }
+                    else
+                    {
+                        // show person color in average skeleton view
+                        averageSkeletonPen = personPen;
+                    }
+
+                    this.DrawBody(averageJoints, averageJointPoints, averageSkeletonPen);
+                }
+
+                this.trackingImageDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
             }));
         }
 
@@ -515,6 +511,8 @@ namespace GestureTracker
                 }
             }
         }
+
+        // Returns color space point
         private Dictionary<JointType, Point> GetJointsPoints(IReadOnlyDictionary<JointType, Kinect2KitJoint> joints)
         {
             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -671,13 +669,13 @@ namespace GestureTracker
         #region Screenshot
         private void Screenshot_Click(object sender, RoutedEventArgs e)
         {
-            Rect bounds = VisualTreeHelper.GetDescendantBounds(this.GestureTrackerWindow);
+            Rect bounds = VisualTreeHelper.GetDescendantBounds(this.GestureTrackerViewbox);
             RenderTargetBitmap renderTarget = new RenderTargetBitmap((Int32)bounds.Width, (Int32)bounds.Height, 96, 96, PixelFormats.Pbgra32);
 
             DrawingVisual visual = new DrawingVisual();
             using (DrawingContext context = visual.RenderOpen())
             {
-                VisualBrush visualBrush = new VisualBrush(this.GestureTrackerWindow);
+                VisualBrush visualBrush = new VisualBrush(this.GestureTrackerViewbox);
                 context.DrawRectangle(visualBrush, null, new Rect(new Point(), bounds.Size));
             }
 
